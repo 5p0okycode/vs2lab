@@ -19,12 +19,12 @@ def on_result(res):
     print("Callback result: {}".format(res.value))
 
 ack = cl.append_async('bar', base_list, on_result)
-print("ACK received: {}".format(ack))          # ACK, nicht .value!
+print("ACK received: {}".format(ack))
 
 wait = 0
 while any(t.is_alive() for t in cl.chan.threads):
-    time.sleep(1)
     wait += 1
     print("... still waiting ({}s)".format(wait))
+    time.sleep(1)
 
 cl.stop()
