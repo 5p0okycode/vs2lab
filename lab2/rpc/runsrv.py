@@ -11,4 +11,4 @@ chan.channel.flushall()
 logger.debug('Flushed all redis keys.')
 
 srv = rpc.Server()
-srv.run()
+srv.async_run()

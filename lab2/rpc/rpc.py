@@ -1,6 +1,9 @@
 import logging 
 
+import time
+
 import constRPC
+import threading
 
 from context import lab_channel
 
@@ -20,12 +23,15 @@ class Client:
         self.client = self.chan.join('client')
         self.server = None
         self.logger = logging.getLogger('vs2lab.lab2.rpc.Client')
+        self.chan.threads = []
 
     def run(self):
         self.chan.bind(self.client)
         self.server = self.chan.subgroup('server')
 
     def stop(self):
+        for thread in self.chan.threads:
+            thread.join()
         self.chan.leave('client')
 
     def append(self, data, db_list):
@@ -44,6 +50,26 @@ class Client:
         _, result = self.chan.receive_from(self.server)
         callback(result)
 
+    def append_async(self, data, db_list, callback):
+        assert isinstance(db_list, DBList)
+        msglst = (constRPC.APPEND, data, db_list)
+        self.chan.send_to(self.server, msglst)
+        msgack = self.chan.receive_from(self.server)
+        if msgack[1] != constRPC.ACK:
+            raise RuntimeError(f"Expected ACK, got {msgack!r}")
+
+        def worker():
+            try:
+                msgres = self.chan.receive_from(self.server)
+                callback(msgres[1])
+            except Exception as e:
+                print(f"[worker] error: {e}")
+
+        t = threading.Thread(target=worker, daemon=True)
+        self.chan.threads.append(t)
+        t.start()
+
+        return constRPC.ACK
 
 class Server:
     def __init__(self):
@@ -68,3 +94,25 @@ class Server:
                     self.chan.send_to({client}, result)  # return response
                 else:
                     pass  # unsupported request, simply ignore
+
+
+# immediately send ack through lab_channel
+#wait for 10 s after a request 
+    def async_run(self):
+        self.chan.bind(self.server)
+        while True:
+            msgreq = self.chan.receive_from_any(self.timeout)
+            if msgreq is None:
+                continue
+            client, msgrpc = msgreq
+            if msgrpc[0] != constRPC.APPEND:
+                continue
+
+            self.chan.send_to({client}, constRPC.ACK)
+
+            def work(client=client, msgrpc=msgrpc):
+                time.sleep(10)
+                result = self.append(msgrpc[1], msgrpc[2])
+                self.chan.send_to({client}, result)
+
+            threading.Thread(target=work, daemon=True).start()

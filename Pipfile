@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-redis = "*"
 rpyc = "*"
 grpcio = "*"
 grpcio-tools = "*"
@@ -13,6 +12,7 @@ ipython = "*"
 jupyter = "*"
 jupyter_server = "*"
 ipyparallel = "*"
+redis = "*"
 
 [dev-packages]
 pylint = "*"
