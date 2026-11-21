@@ -22,7 +22,7 @@ class Client:
         self.chan = lab_channel.Channel()
         self.client = self.chan.join('client')
         self.server = None
-        self.logger = logging.getLogger('vs2lab.lab2.rpc.Client')
+        # self.logger = logging.getLogger('vs2lab.lab2.rpc.Client')
         self.chan.threads = []
 
     def run(self):
@@ -40,7 +40,7 @@ class Client:
         self.chan.send_to(self.server, msglst)  # send msg to server
         msgrcv = self.chan.receive_from(self.server)  # wait for response
         return msgrcv[1]  # pass it to caller
-
+    """
     def _await_ack(self):
         sender, ack = self.chan.receive_from(self.server)
         assert ack == constRPC.OK, 'expected ACK from server'
@@ -49,6 +49,8 @@ class Client:
     def _await_result(self, callback):
         _, result = self.chan.receive_from(self.server)
         callback(result)
+    """
+
 
     def append_async(self, data, db_list, callback):
         assert isinstance(db_list, DBList)
@@ -59,11 +61,11 @@ class Client:
             raise RuntimeError(f"Expected ACK, got {msgack!r}")
 
         def worker():
-            try:
-                msgres = self.chan.receive_from(self.server)
-                callback(msgres[1])
-            except Exception as e:
-                print(f"[worker] error: {e}")
+                    try:
+                        msgres = self.chan.receive_from(self.server)
+                        callback(msgres[1])
+                    except Exception as e:
+                        print(f"[worker] error: {e}")
 
         t = threading.Thread(target=worker, daemon=True)
         self.chan.threads.append(t)
